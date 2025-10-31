@@ -1,7 +1,0 @@
-E:/TVT/Doc/aaaaaIPC/SpectrumPlugin/code整理/DWS官方SDK/dwspectrum-metadata_sdk-6.0.6.41837-universal/metadata_sdk-build/AI_box_plugin/CMakeFiles/nx_sdk.dir
-E:/TVT/Doc/aaaaaIPC/SpectrumPlugin/code整理/DWS官方SDK/dwspectrum-metadata_sdk-6.0.6.41837-universal/metadata_sdk-build/AI_box_plugin/CMakeFiles/AI_box_plugin.dir
-E:/TVT/Doc/aaaaaIPC/SpectrumPlugin/code整理/DWS官方SDK/dwspectrum-metadata_sdk-6.0.6.41837-universal/metadata_sdk-build/AI_box_plugin/CMakeFiles/edit_cache.dir
-E:/TVT/Doc/aaaaaIPC/SpectrumPlugin/code整理/DWS官方SDK/dwspectrum-metadata_sdk-6.0.6.41837-universal/metadata_sdk-build/AI_box_plugin/CMakeFiles/rebuild_cache.dir
-E:/TVT/Doc/aaaaaIPC/SpectrumPlugin/code整理/DWS官方SDK/dwspectrum-metadata_sdk-6.0.6.41837-universal/metadata_sdk-build/AI_box_plugin/nx_kit/CMakeFiles/nx_kit.dir
-E:/TVT/Doc/aaaaaIPC/SpectrumPlugin/code整理/DWS官方SDK/dwspectrum-metadata_sdk-6.0.6.41837-universal/metadata_sdk-build/AI_box_plugin/nx_kit/CMakeFiles/edit_cache.dir
-E:/TVT/Doc/aaaaaIPC/SpectrumPlugin/code整理/DWS官方SDK/dwspectrum-metadata_sdk-6.0.6.41837-universal/metadata_sdk-build/AI_box_plugin/nx_kit/CMakeFiles/rebuild_cache.dir
