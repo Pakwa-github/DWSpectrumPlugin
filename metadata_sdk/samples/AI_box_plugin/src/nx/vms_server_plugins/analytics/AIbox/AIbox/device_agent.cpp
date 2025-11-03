@@ -1,5 +1,8 @@
 ﻿// Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
+#define NX_DEBUG_ENABLE_OUTPUT true
+#include <nx/kit/debug.h>
+
 #include "device_agent.h"
 
 #include <chrono>
@@ -11,6 +14,8 @@
 #include "object_attributes.h"
 #include "../utils.h"
 #include "stub_analytics_plugin_AIbox_ini.h"
+
+#include "../net/subscriber.h"
 
 namespace nx {
 namespace vms_server_plugins {
@@ -97,8 +102,13 @@ Ptr<IMetadataPacket> DeviceAgent::generateObjectMetadataPacket(int64_t frameTime
     std::vector<Ptr<ObjectMetadata>> objects;
     {
         const std::lock_guard<std::mutex> lock(m_mutex);
-        objects = generateObjects(kObjectAttributes, m_objectTypeIdsToGenerate, m_sendAttributes);
+        objects = generateObjects(kObjectAttributes, m_objectTypeIdsToGenerate, false);  // TVT: no send attributes
     }
+
+    // NX_PRINT << "Pak33";
+    // NX_PRINT << __FILE__ << " " << __LINE__ << " " << __func__;
+    // TODO
+    
 
     for (int i = 0; i < (int) objects.size(); ++i)
     {
@@ -114,6 +124,13 @@ Ptr<IMetadataPacket> DeviceAgent::generateObjectMetadataPacket(int64_t frameTime
 DeviceAgent::DeviceAgent(const nx::sdk::IDeviceInfo* deviceInfo):
     ConsumingDeviceAgent(deviceInfo, ini().enableOutput)
 {
+    static bool subscriptionStarted = false;
+    if (!subscriptionStarted)
+    {
+        Subscriber::startIpcSubscription("10.1.60.138", 8080, "/SetSubscribe");
+        subscriptionStarted = true;
+        NX_PRINT << "IPC Subscription started.";
+    }
 }
 
 DeviceAgent::~DeviceAgent()

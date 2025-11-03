@@ -15,7 +15,7 @@ struct Ini: public nx::kit::IniConfig
 {
     Ini(): IniConfig("stub_analytics_plugin_AIbox.ini") { reload(); }
 
-    NX_INI_FLAG(0, enableOutput, "");
+    NX_INI_FLAG(0, enableOutput, "Whether to produce verbose log on stderr.");
     NX_INI_FLAG(0, isLicenseRequired, "Whether the Plugin declares in its manifest that it requires a license.");
     
     

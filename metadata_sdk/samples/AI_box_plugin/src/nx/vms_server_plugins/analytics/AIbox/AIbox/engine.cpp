@@ -1,5 +1,8 @@
 // Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
+#define NX_DEBUG_ENABLE_OUTPUT true
+#include <nx/kit/debug.h>
+
 #include "engine.h"
 #include "device_agent.h"
 #include "device_agent_manifest.h"
@@ -26,6 +29,7 @@ static const std::set<std::string> kObjectTypeIdsGeneratedByDefault = {
 
 Engine::Engine(): nx::sdk::analytics::Engine(ini().enableOutput)
 {
+    NX_PRINT << "PAK Engine created";
 }
 
 Engine::~Engine()
@@ -34,6 +38,7 @@ Engine::~Engine()
 
 void Engine::doObtainDeviceAgent(Result<IDeviceAgent*>* outResult, const IDeviceInfo* deviceInfo)
 {
+    NX_PRINT << "PAK doObtainDeviceAgent called";
     *outResult = new DeviceAgent(deviceInfo);
 }
 

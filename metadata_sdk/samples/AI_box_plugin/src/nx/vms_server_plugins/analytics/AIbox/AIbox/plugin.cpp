@@ -1,5 +1,8 @@
 // Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
+#define NX_DEBUG_ENABLE_OUTPUT true
+#include <nx/kit/debug.h>
+
 #include "plugin.h"
 
 #include <nx/kit/utils.h>
@@ -18,6 +21,7 @@ using namespace nx::sdk::analytics;
 
 Result<IEngine*> Plugin::doObtainEngine()
 {
+    NX_PRINT << "PAK doObtainEngine called";
     return new Engine();
 }
 
