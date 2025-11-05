@@ -22,7 +22,9 @@ using namespace nx::sdk::analytics;
 Result<IEngine*> Plugin::doObtainEngine()
 {
     NX_PRINT << "PAK doObtainEngine called";
-    return new Engine();
+    auto engine = new Engine();
+    // engine->initialize(this);
+    return engine;
 }
 
 std::string Plugin::manifestString() const

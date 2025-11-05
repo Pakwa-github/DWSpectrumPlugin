@@ -2,6 +2,7 @@
 #define SUBSCRIBER_H
 
 #include "tcp_client.h"
+#include "net_utils.h"
 #include <string>
 
 class Subscriber {
@@ -12,9 +13,18 @@ public:
 
     static void stopIpcSubscription();
 
-    static bool isSubscribed() {
+    static bool isSubscribed()
+    {
         return TcpClient::getInstance().isConnected();
     }
+
+public:
+    using PEAResultCallback = std::function<void(const std::vector<PEAResult>&)>;
+
+    static void registerPEAResultCallback(PEAResultCallback callback);
+
+private:
+    static PEAResultCallback s_PEAResultCallback;
 };
 
 #endif // SUBSCRIBER_H

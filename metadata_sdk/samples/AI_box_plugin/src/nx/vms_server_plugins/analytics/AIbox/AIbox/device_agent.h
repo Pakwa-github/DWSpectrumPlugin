@@ -9,6 +9,7 @@
 #include <nx/sdk/helpers/uuid_helper.h>
 
 #include "engine.h"
+#include "../net/net_utils.h"
 
 namespace nx {
 namespace vms_server_plugins {
@@ -45,6 +46,10 @@ private:
     nx::sdk::Ptr<nx::sdk::analytics::IMetadataPacket> generateObjectMetadataPacket(
         int64_t frameTimestampUs);
 
+    void onPEAResultsReceived(const std::vector<PEAResult>& results);
+
+    void startSubscription();
+
 private:
     mutable std::mutex m_mutex;
 
@@ -53,6 +58,16 @@ private:
     bool m_sendAttributes = true;
     std::vector<nx::sdk::Uuid> m_trackIds;
     std::set<std::string> m_objectTypeIdsToGenerate;
+
+
+private:
+    bool m_subscriptionStarted = false; // Tracks whether the subscription is active for this instance
+    std::mutex m_subscriptionMutex;
+
+private:
+    std::string m_login;
+    std::string m_password;
+    std::string m_basicAuth;
 };
 
 } // namespace AIbox

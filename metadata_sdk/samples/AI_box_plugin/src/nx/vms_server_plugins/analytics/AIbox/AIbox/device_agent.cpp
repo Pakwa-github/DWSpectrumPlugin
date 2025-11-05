@@ -55,12 +55,12 @@ static Rect generateBoundingBox(int frameIndex, int trackIndex, int trackCount)
     }
 
     Rect boundingBox;
-    boundingBox.width = std::min((1.0F - kFreeSpace) / trackCount, kMaxBoundingBoxWidth);
-    boundingBox.height = std::min(boundingBox.width, kMaxBoundingBoxHeight);
-    boundingBox.x = 1.0F / trackCount * trackIndex + kFreeSpace / (trackCount + 1);
+    boundingBox.width = std::min((1.0F - kFreeSpace) / trackCount, kMaxBoundingBoxWidth);  // min(0.9/count ,0.5)
+    boundingBox.height = std::min(boundingBox.width, kMaxBoundingBoxHeight);               // min(width, 0.5)
+    boundingBox.x = 1.0F / trackCount * trackIndex + kFreeSpace / (trackCount + 1);        // idx/count + 0.1 /(count+1)
     boundingBox.y = std::max(
         0.0F,
-        1.0F - boundingBox.height - (1.0F / kTrackLength) * (frameIndex % kTrackLength));
+        1.0F - boundingBox.height - (1.0F / kTrackLength) * (frameIndex % kTrackLength));   // 1-height - frame/40000 > 0
 
     return boundingBox;
 }
@@ -112,7 +112,7 @@ Ptr<IMetadataPacket> DeviceAgent::generateObjectMetadataPacket(int64_t frameTime
 
     for (int i = 0; i < (int) objects.size(); ++i)
     {
-        objects[i]->setBoundingBox(generateBoundingBox(m_frameIndex, i, objects.size()));
+        objects[i]->setBoundingBox(generateBoundingBox(m_frameIndex, i, (int)objects.size()));
         objects[i]->setTrackId(trackIdByTrackIndex(i));
 
         metadataPacket->addItem(objects[i].get());
@@ -124,17 +124,20 @@ Ptr<IMetadataPacket> DeviceAgent::generateObjectMetadataPacket(int64_t frameTime
 DeviceAgent::DeviceAgent(const nx::sdk::IDeviceInfo* deviceInfo):
     ConsumingDeviceAgent(deviceInfo, ini().enableOutput)
 {
-    static bool subscriptionStarted = false;
-    if (!subscriptionStarted)
-    {
-        Subscriber::startIpcSubscription("10.1.60.138", 8080, "/SetSubscribe");
-        subscriptionStarted = true;
-        NX_PRINT << "IPC Subscription started.";
-    }
+    NX_PRINT << "DeviceAgent created for device: " << deviceInfo->id();
+    startSubscription();
+    NX_PRINT << "Subscription started in DeviceAgent constructor.";
 }
 
 DeviceAgent::~DeviceAgent()
 {
+    std::lock_guard<std::mutex> lock(m_subscriptionMutex);
+    if (m_subscriptionStarted)
+    {
+        Subscriber::stopIpcSubscription();
+        m_subscriptionStarted = false;
+        NX_PRINT << "DeviceAgent destroyed, unsubscribed from IPC";
+    }
 }
 
 std::string DeviceAgent::manifestString() const
@@ -190,6 +193,54 @@ Uuid DeviceAgent::trackIdByTrackIndex(int trackIndex)
         m_trackIds.push_back(UuidHelper::randomUuid());
 
     return m_trackIds[trackIndex];
+}
+
+void DeviceAgent::onPEAResultsReceived(const std::vector<PEAResult>& results)
+{
+    for (const auto& result: results)
+    {
+        int videoWidth = 1920;  // TODO: get from device info or video frame
+        int videoHeight = 1080;
+        auto metatdataPacket = makePtr<nx::sdk::analytics::ObjectMetadataPacket>();
+        metatdataPacket->setTimestampUs(result.currentTime);
+
+        auto objectMetadata = makePtr<nx::sdk::analytics::ObjectMetadata>();
+        objectMetadata->setTypeId("nx.dw_tvt.PEA.perimeterAlarm");
+        std::string targetIdStr = std::to_string(result.traject.targetId);
+        std::string uuidStr = "00000000-0000-0000-0000-" + std::string(12 - targetIdStr.size(), '0') + targetIdStr;
+        nx::sdk::Uuid trackId = nx::sdk::UuidHelper::fromStdString(uuidStr);
+        objectMetadata->setTrackId(trackId);
+
+        nx::sdk::analytics::Rect boundingBox;
+        boundingBox.x = static_cast<float>(result.traject.x1) / videoWidth;
+        boundingBox.y = static_cast<float>(result.traject.y1) / videoHeight;
+        boundingBox.width = static_cast<float>(result.traject.x2 - result.traject.x1) / videoWidth;
+        boundingBox.height = static_cast<float>(result.traject.y2 - result.traject.y1) / videoHeight;
+        objectMetadata->setBoundingBox(boundingBox);
+
+        metatdataPacket->addItem(objectMetadata.get());
+
+        pushMetadataPacket(metatdataPacket.releasePtr());
+        NX_PRINT << "box pushed from PEA result, targetId=" << result.traject.targetId << ", box=("
+                << result.traject.x1 << "," << result.traject.y1 << "," << result.traject.x2 << "," << result.traject.y2 << ")";
+
+    }
+}
+
+void DeviceAgent::startSubscription()
+{
+    std::lock_guard<std::mutex> lock(m_subscriptionMutex);
+    if (!m_subscriptionStarted)
+    {
+        Subscriber::registerPEAResultCallback([this](const std::vector<PEAResult>& results)
+        {
+            this->onPEAResultsReceived(results);
+        });
+
+        Subscriber::startIpcSubscription("10.1.60.137", 8080, "/SetSubscribe");
+        m_subscriptionStarted = true;
+        NX_PRINT << "IPC Subscription started.";
+    }
 }
 
 } // namespace AIbox

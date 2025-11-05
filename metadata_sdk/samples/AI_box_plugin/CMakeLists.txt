@@ -77,6 +77,7 @@ target_compile_definitions(AI_box_plugin
 )
 
 # asio
+# --------------------------------------------------------------------------------------------------
 target_include_directories(AI_box_plugin PRIVATE ${AI_BOX_PLUGIN_SRC_DIR}/third_party/asio/include)
 target_compile_definitions(AI_box_plugin PRIVATE ASIO_STANDALONE)
 target_compile_definitions(AI_box_plugin PRIVATE _WIN32_WINNT=0x0601)
@@ -85,19 +86,36 @@ target_compile_definitions(AI_box_plugin PRIVATE _SILENCE_CXX17_ALLOCATOR_VOID_D
 if(NOT WIN32)
     target_link_libraries(AI_box_plugin PRIVATE pthread)
 endif()
+# --------------------------------------------------------------------------------------------------
+
+# nlohmann/json
+# tinyxml2
+# --------------------------------------------------------------------------------------------------
+target_include_directories(AI_box_plugin PRIVATE ${AI_BOX_PLUGIN_SRC_DIR}/third_party/)
+set(TINYXML2_SRC ${AI_BOX_PLUGIN_SRC_DIR}/third_party/tinyxml2/tinyxml2.cpp)
+target_sources(AI_box_plugin PRIVATE ${TINYXML2_SRC})
+# --------------------------------------------------------------------------------------------------
 
 # Small test executable to validate Subscriber IPC connection.
+# --------------------------------------------------------------------------------------------------
 add_executable(ipc_test
     ${AI_BOX_PLUGIN_SRC_DIR}/test_ipc/main.cpp
     ${AI_BOX_PLUGIN_SRC_DIR}/nx/vms_server_plugins/analytics/AIbox/net/subscriber.cpp
     ${AI_BOX_PLUGIN_SRC_DIR}/nx/vms_server_plugins/analytics/AIbox/net/tcp_client.cpp
+    ${AI_BOX_PLUGIN_SRC_DIR}/nx/vms_server_plugins/analytics/AIbox/net/net_utils.cpp
+    ${TINYXML2_SRC}
 )
-target_include_directories(ipc_test PRIVATE ${AI_BOX_PLUGIN_SRC_DIR} ${AI_BOX_PLUGIN_SRC_DIR}/third_party/asio/include)
+target_include_directories(ipc_test PRIVATE 
+    ${AI_BOX_PLUGIN_SRC_DIR} 
+    ${AI_BOX_PLUGIN_SRC_DIR}/third_party/asio/include
+    ${AI_BOX_PLUGIN_SRC_DIR}/third_party/
+)
 target_compile_definitions(ipc_test PRIVATE ASIO_STANDALONE _WIN32_WINNT=0x0601 _SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING)
 target_link_libraries(ipc_test PRIVATE nx_kit nx_sdk)
 if(NOT WIN32)
     target_link_libraries(ipc_test PRIVATE pthread)
 endif()
+# --------------------------------------------------------------------------------------------------
 
 #--------------------------------------------------------------------------------------------------
 # Copy object_streamer files.

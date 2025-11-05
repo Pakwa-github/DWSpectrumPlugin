@@ -1,0 +1,115 @@
+{
+    "capabilities": "deviceDependent",
+    "_comment_for_supportedCameraVendors":
+    [
+        "A vendor is supported if its name in a lowercase starts with one of supportedCameraVendors."
+    ],
+    "supportedCameraVendors":
+    [
+        "provision"
+    ],
+    "_comment_for_supportedCameraModels":
+    [
+        "If the camera's vendor is not supported than the model is not supported, else",
+        "if supportedCameraModels list is empty than the model is supported, else",
+        "if a model's name case-insensitively starts with one of supportedCameraModels",
+        "than the model is supported, else the model is not supported."
+    ],
+    "supportedCameraModels":
+    [
+        "BX-341IPE",
+        "DAI-340IPE-28",
+        "DAI-340IPE-MVF",
+        "DI-340IPE-28",
+        "DI-340IPE-MVF",
+        "DI-380IPE-MVF",
+        "DI-380IPS-28",
+        "DMA-340IPE-28",
+        "I4-340IPE-36",
+        "I4-340IPE-MVF",
+        "I6-340IPE-MVF",
+        "I6-380IPE-MVF"
+    ],
+    "eventTypes":
+    [
+        {
+            "id": "nx.dw_tvt.MOTION",
+            "name": "Motion Detection",
+            "flags": "stateDependent",
+            "internalName": "MOTION",
+            "alarmName": "motionAlarm"
+        },
+        {
+            "id": "nx.dw_tvt.PEA.perimeterAlarm",
+            "name": "Perimeter Intrusion [exclusive]",
+            "flags": "stateDependent",
+            "internalName": "PEA",
+            "alarmName": "perimeterAlarm",
+            "group": 1,
+            "_comment1": "PEA is responsible both for Line Crossing and Perimeter Intrusion",
+            "_comment2": "Notification is sent as long as the target keeps moving in the detected area"
+        },
+        {
+            "id": "nx.dw_tvt.PEA.tripwireAlarm",
+            "name": "Line Crossing [exclusive]",
+            "flags": "stateDependent",
+            "internalName": "PEA",
+            "alarmName": "tripwireAlarm",
+            "group": 1,
+            "_comment1": "PEA is responsible both for Line Crossing and Perimeter Intrusion",
+            "_comment2": "Notification is sent as long as the target keeps moving in the detected area"
+        },
+        {
+            "id": "nx.dw_tvt.AVD.sceneChange",
+            "name": "Scene Change",
+            "flags": "stateDependent",
+            "internalName": "AVD",
+            "alarmName": "sceneChange",
+            "_comment": "AVD is responsible for all three: Scene Change, Video Blur Detection and Abnormal color detection"
+        },
+        {
+            "id": "nx.dw_tvt.AVD.clarityAbnormal",
+            "name": "Video Blur Detection",
+            "flags": "stateDependent",
+            "internalName": "AVD",
+            "alarmName": "clarityAbnormal",
+            "_comment": "AVD is responsible for all three: Scene Change, Video Blur Detection and Abnormal color detection"
+        },
+        {
+            "id": "nx.dw_tvt.AVD.colorAbnormal",
+            "name": "Abnormal color detection",
+            "flags": "stateDependent",
+            "internalName": "AVD",
+            "alarmName": "colorAbnormal",
+            "_comment": "AVD is responsible for all three: Scene Change, Video Blur Detection and Abnormal color detection"
+        },
+
+        {
+            "id": "nx.dw_tvt.AOIENTRY",
+            "name": "Entering Object Detection [exclusive]",
+            "flags": "stateDependent",
+            "internalName": "AOIENTRY",
+            "alarmName": "aoientryAlarm",
+            "restricted": true,
+            "group": 1
+        },
+        {
+            "id": "nx.dw_tvt.AOILEAVE",
+            "name": "Leaving Object Detection [exclusive]",
+            "flags": "stateDependent",
+            "internalName": "AOILEAVE",
+            "alarmName": "aoileaveAlarm",
+            "restricted": true,
+            "group": 1
+        },
+        {
+            "id": "nx.dw_tvt.PASSLINECOUNT",
+            "name": "Line Crossing Object Counting [exclusive]",
+            "flags": "stateDependent",
+            "internalName": "PASSLINECOUNT",
+            "alarmName": "passlinecountAlarm",
+            "restricted": true,
+            "group": 1
+        }
+    ]
+}

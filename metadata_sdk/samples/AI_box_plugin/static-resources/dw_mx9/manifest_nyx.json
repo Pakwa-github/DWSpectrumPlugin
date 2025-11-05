@@ -1,0 +1,106 @@
+{
+    "capabilities": "deviceDependent",
+    "supportedCameraVendors": [
+        "nyx"
+    ],
+    "supportedCameraModels": [
+        "NYX IPD4-28F IQ+",
+        "NYX IPD4-36F IQ+",
+        "NYX IPD4-2812ME IQ+",
+        "NYX IPB4-28F IQ+",
+        "NYX IPB4-36F IQ+",
+        "NYX IPB4-2812ME IQ+",
+        "NYX IPB4-722ME IQ+",
+        "NYX IPDC4-28F IQ+",
+        "NYX IPD8-28F IQ+L",
+        "NYX IPD8-2812ME IQ+L",
+        "NYX IPB8-28F IQ+L",
+        "NYX IPB8-2812ME IQ+L",
+        "NYX IPD5-PA",
+        "NYX IPD5-28F IQ+ COLOUR",
+        "NYX IPD4-28F IQ+ ALERT",
+        "NYX IPB2-722 ANPR",
+        "NYX IPZ25 STAR+"
+    ],
+    "eventTypes": [
+        {
+            "id": "nx.dw_tvt.MOTION",
+            "name": "Motion Detection",
+            "flags": "stateDependent",
+            "internalName": "MOTION",
+            "alarmName": "motionAlarm"
+        },
+        {
+            "id": "nx.dw_tvt.PEA.perimeterAlarm",
+            "name": "Perimeter Intrusion [exclusive]",
+            "flags": "stateDependent",
+            "internalName": "PEA",
+            "alarmName": "perimeterAlarm",
+            "group": 1,
+            "_comment1": "PEA is responsible both for Line Crossing and Perimeter Intrusion",
+            "_comment2": "Notification is sent as long as the target keeps moving in the detected area"
+        },
+        {
+            "id": "nx.dw_tvt.PEA.tripwireAlarm",
+            "name": "Line Crossing [exclusive]",
+            "flags": "stateDependent",
+            "internalName": "PEA",
+            "alarmName": "tripwireAlarm",
+            "group": 1,
+            "_comment1": "PEA is responsible both for Line Crossing and Perimeter Intrusion",
+            "_comment2": "Notification is sent as long as the target keeps moving in the detected area"
+        },
+        {
+            "id": "nx.dw_tvt.AVD.sceneChange",
+            "name": "Scene Change",
+            "flags": "stateDependent",
+            "internalName": "AVD",
+            "alarmName": "sceneChange",
+            "_comment": "AVD is responsible for all three: Scene Change, Video Blur Detection and Abnormal color detection"
+        },
+        {
+            "id": "nx.dw_tvt.AVD.clarityAbnormal",
+            "name": "Video Blur Detection",
+            "flags": "stateDependent",
+            "internalName": "AVD",
+            "alarmName": "clarityAbnormal",
+            "_comment": "AVD is responsible for all three: Scene Change, Video Blur Detection and Abnormal color detection"
+        },
+        {
+            "id": "nx.dw_tvt.AVD.colorAbnormal",
+            "name": "Abnormal color detection",
+            "flags": "stateDependent",
+            "internalName": "AVD",
+            "alarmName": "colorAbnormal",
+            "_comment": "AVD is responsible for all three: Scene Change, Video Blur Detection and Abnormal color detection"
+        },
+
+        {
+            "id": "nx.dw_tvt.AOIENTRY",
+            "name": "Region Entry [exclusive]",
+            "flags": "stateDependent",
+            "internalName": "AOIENTRY",
+            "alarmName": "aoientryAlarm",
+            "restricted": true,
+            "group": 1
+        },
+        {
+            "id": "nx.dw_tvt.AOILEAVE",
+            "name": "Region Exit [exclusive]",
+            "flags": "stateDependent",
+            "internalName": "AOILEAVE",
+            "alarmName": "aoileaveAlarm",
+            "restricted": true,
+            "group": 1
+        },
+        {
+            "id": "nx.dw_tvt.PASSLINECOUNT",
+            "name": "Line Crossing Object Counting [exclusive]",
+            "flags": "stateDependent",
+            "internalName": "PASSLINECOUNT",
+            "alarmName": "passlinecountAlarm",
+            "restricted": true,
+            "group": 1
+        }
+    ]
+}

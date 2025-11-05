@@ -26,7 +26,7 @@ int main()
     Subscriber::startIpcSubscription("10.1.60.137", 8080, "/SetSubscribe");
 
     // Wait a bit to let connection establish and data (if any) arrive.
-    std::this_thread::sleep_for(std::chrono::seconds(30));
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
     // Stop subscription and exit.
     Subscriber::stopIpcSubscription();

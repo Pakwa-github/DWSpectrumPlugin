@@ -13,6 +13,9 @@ namespace AIbox {
 
 class Plugin: public nx::sdk::analytics::Plugin
 {
+public:
+    // Plugin() = default;
+
 protected:
     virtual nx::sdk::Result<nx::sdk::analytics::IEngine*> doObtainEngine() override;
     virtual std::string manifestString() const override;
