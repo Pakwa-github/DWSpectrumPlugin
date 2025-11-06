@@ -35,21 +35,38 @@ const std::string DeviceAgent::kTimeShiftSetting = "timestampShiftMs";
 const std::string DeviceAgent::kSendAttributesSetting = "sendAttributes";
 const std::string DeviceAgent::kObjectTypeGenerationSettingPrefix = "objectTypeIdToGenerate.";
 
+static inline long long chooseEventTimestampUs(long long eventUs, int timestampShiftMs)
+{
+    long long now_us = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+
+    NX_PRINT << "PAKtry nowus:" << now_us
+            << "  result.currentTime:" << eventUs
+            << "  m_timestampShiftMs:" << timestampShiftMs;
+
+    // If device time is wildly different from system time (e.g. > 10 min), treat
+    // device timestamp as unreliable and use current system time for display.
+
+    const long long kSkewThresholdUs = 10LL * 60 * 1000000; // 10 minutes
+    long long absDiff = (now_us > eventUs) ? (now_us - eventUs) : (eventUs - now_us);
+    if (absDiff > kSkewThresholdUs || eventUs <= 0)
+    {
+        return now_us + static_cast<long long>(timestampShiftMs) * 1000LL;
+    }
+    return eventUs + static_cast<long long>(timestampShiftMs) * 1000LL;
+}
+
 static Rect generateBoundingBox(int frameIndex, int trackIndex, int trackCount)
 {
     
     if (1)
     {
         Rect boundingBox;
-        // 1. 固定矩形宽高（占画面20%，可根据需要调整，比如0.3=30%）
-        boundingBox.width = 0.2F;  // 宽度：20%
-        boundingBox.height = 0.2F; // 高度：20%（和宽度一致，是正方形；要长方形可改这里，比如0.1）
+        boundingBox.width = 0.2F;
+        boundingBox.height = 0.2F;
         
-        // 2. 计算中心坐标：(1-宽)/2 确保x居中，(1-高)/2 确保y居中
-        boundingBox.x = (1.0F - boundingBox.width) / 2.0F;  // x轴居中
-        boundingBox.y = (1.0F - boundingBox.height) / 2.0F; // y轴居中
-
-        // （原函数的frameIndex、trackIndex等动态参数不再使用，直接返回固定坐标）
+        boundingBox.x = (1.0F - boundingBox.width) / 2.0F;
+        boundingBox.y = (1.0F - boundingBox.height) / 2.0F;
 
         return boundingBox;
     }
@@ -104,11 +121,6 @@ Ptr<IMetadataPacket> DeviceAgent::generateObjectMetadataPacket(int64_t frameTime
         const std::lock_guard<std::mutex> lock(m_mutex);
         objects = generateObjects(kObjectAttributes, m_objectTypeIdsToGenerate, false);  // TVT: no send attributes
     }
-
-    // NX_PRINT << "Pak33";
-    // NX_PRINT << __FILE__ << " " << __LINE__ << " " << __func__;
-    // TODO
-    
 
     for (int i = 0; i < (int) objects.size(); ++i)
     {
@@ -199,10 +211,12 @@ void DeviceAgent::onPEAResultsReceived(const std::vector<PEAResult>& results)
 {
     for (const auto& result: results)
     {
-        int videoWidth = 1920;  // TODO: get from device info or video frame
-        int videoHeight = 1080;
+        int videoWidth = 10000;
+        int videoHeight = 10000;
         auto metatdataPacket = makePtr<nx::sdk::analytics::ObjectMetadataPacket>();
-        metatdataPacket->setTimestampUs(result.currentTime);
+
+        long long chosen_ts_us = chooseEventTimestampUs(static_cast<long long>(result.currentTime), m_timestampShiftMs);
+        metatdataPacket->setTimestampUs(chosen_ts_us);
 
         auto objectMetadata = makePtr<nx::sdk::analytics::ObjectMetadata>();
         objectMetadata->setTypeId("nx.dw_tvt.PEA.perimeterAlarm");
