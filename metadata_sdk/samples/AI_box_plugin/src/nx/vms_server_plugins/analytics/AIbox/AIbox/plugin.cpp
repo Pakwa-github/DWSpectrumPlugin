@@ -1,11 +1,11 @@
 // Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-#define NX_DEBUG_ENABLE_OUTPUT true
-#include <nx/kit/debug.h>
+
 
 #include "plugin.h"
 
 #include <nx/kit/utils.h>
+#include <nx/kit/debug.h>
 
 #include "engine.h"
 #include "stub_analytics_plugin_AIbox_ini.h"
@@ -23,7 +23,7 @@ Result<IEngine*> Plugin::doObtainEngine()
 {
     NX_PRINT << "PAK doObtainEngine called";
     auto engine = new Engine();
-    // engine->initialize(this);
+    engine->initialize(this);
     return engine;
 }
 
@@ -33,9 +33,9 @@ std::string Plugin::manifestString() const
     {
         "id": "nx.stub.AIbox",
         "name": "Stub, Object Detection",
-        "description": "An example Plugin for demonstrating the Base Library of Taxonomy and providing examples of object metadata generation.",
-        "version": "1.0.0",
-        "vendor": "Plugin vendor",
+        "description": "HajimiNanbeiluduo.",
+        "version": "0.8.3",
+        "vendor": "TVT",
         "isLicenseRequired": %s
     }
     )json";

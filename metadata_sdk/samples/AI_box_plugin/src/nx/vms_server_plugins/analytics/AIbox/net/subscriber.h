@@ -1,9 +1,10 @@
 #ifndef SUBSCRIBER_H
 #define SUBSCRIBER_H
 
+#include <string>
+
 #include "tcp_client.h"
 #include "net_utils.h"
-#include <string>
 
 class Subscriber {
 public:

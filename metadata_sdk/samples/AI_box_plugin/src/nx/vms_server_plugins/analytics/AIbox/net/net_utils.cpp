@@ -1,7 +1,7 @@
-#define NX_DEBUG_ENABLE_OUTPUT true
-#include <nx/kit/debug.h>
 
 #include "net_utils.h"
+
+#include <nx/kit/debug.h>
 
 std::vector<PEAResult> parsePEATrajectoryData(const std::string& xmlData)
 {
@@ -11,13 +11,13 @@ std::vector<PEAResult> parsePEATrajectoryData(const std::string& xmlData)
     tinyxml2::XMLError eResult = doc.Parse(xmlData.c_str());
     if (eResult != tinyxml2::XML_SUCCESS)
     {
-        NX_OUTPUT << "Failed to parse XML data: " << doc.ErrorStr();
+        NX_PRINT << "Failed to parse XML data: " << doc.ErrorStr();
         return results;
     }
     tinyxml2::XMLElement* root = doc.RootElement();
     if (!root)
     {
-        NX_OUTPUT << "Invalid XML format: No root element.";
+        NX_PRINT << "Invalid XML format: No root element.";
         return results;
     }
     std::string smartType;
@@ -28,7 +28,7 @@ std::vector<PEAResult> parsePEATrajectoryData(const std::string& xmlData)
     }
     if (smartType != "PEA")
     {
-        NX_OUTPUT << "Unsupported smartType: " << smartType;
+        NX_PRINT << "Unsupported smartType: " << smartType;
         return results;
     }
     std::string subscribeOption;
@@ -59,7 +59,7 @@ std::vector<PEAResult> parsePEATrajectoryData(const std::string& xmlData)
     tinyxml2::XMLElement* trajectoryListElem = root->FirstChildElement("traject");
     if (!trajectoryListElem)
     {
-        NX_OUTPUT << "Not found traject.";
+        NX_PRINT << "Not found traject.";
         return results;
     }
     tinyxml2::XMLElement* itemElem = trajectoryListElem->FirstChildElement("item");

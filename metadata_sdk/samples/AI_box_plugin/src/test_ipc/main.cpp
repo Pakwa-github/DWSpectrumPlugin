@@ -1,8 +1,10 @@
 // Small test executable to check Subscriber IPC connection
-#include "nx/vms_server_plugins/analytics/AIbox/net/subscriber.h"
+
 #include <iostream>
 #include <thread>
 #include <chrono>
+
+#include "nx/vms_server_plugins/analytics/AIbox/net/subscriber.h"
 
 int main()
 {

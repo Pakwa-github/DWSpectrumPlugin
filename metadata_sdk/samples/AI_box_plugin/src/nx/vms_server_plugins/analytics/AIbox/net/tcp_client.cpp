@@ -1,10 +1,11 @@
-#define NX_DEBUG_ENABLE_OUTPUT true
-#include <nx/kit/debug.h>
 
 #include "tcp_client.h"
+
 #include <iostream>
 #include <sstream>
 #include <chrono>
+
+#include <nx/kit/debug.h>
 
 // Thread-safe printing helpers
 void TcpClient::printLocked(const std::string& msg) const
@@ -16,7 +17,7 @@ void TcpClient::printLocked(const std::string& msg) const
 void TcpClient::outputLocked(const std::string& msg) const
 {
     std::lock_guard<std::mutex> lk(m_printMutex);
-    NX_OUTPUT << msg;
+    NX_PRINT << msg;
 }
 
 std::mutex TcpClient::s_instanceMutex;

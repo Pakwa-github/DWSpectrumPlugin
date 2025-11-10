@@ -1,17 +1,16 @@
 // Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
-#define NX_DEBUG_ENABLE_OUTPUT true
-#include <nx/kit/debug.h>
-
 #include "engine.h"
-#include "device_agent.h"
-#include "device_agent_manifest.h"
-#include "stub_analytics_plugin_AIbox_ini.h"
-
-#include <nx/kit/json.h>
 
 #include <cctype>
 #include <algorithm>
+
+#include <nx/kit/json.h>
+#include <nx/kit/debug.h>
+
+#include "device_agent.h"
+#include "device_agent_manifest.h"
+#include "stub_analytics_plugin_AIbox_ini.h"
 
 namespace nx {
 namespace vms_server_plugins {
@@ -112,7 +111,7 @@ std::string Engine::manifestString() const
 
 bool Engine::isCompatible(const nx::sdk::IDeviceInfo* deviceInfo) const
 {
-    return true;
+    // return true;
     
     // three times
     const std::string vendor = nx::kit::utils::toString(deviceInfo->vendor());
@@ -165,7 +164,8 @@ void Engine::loadCompatibleManifests()
     //     manifestDir = m_pluginHomeDir + "\\static-resources\\dw_mx9\\";
     // }
     // twice
-    manifestDir = "E:\\TVT\\code\\SpectrumPlugin\\dwspectrum-metadata_sdk-6.0.6.41837-universal\\metadata_sdk\\samples\\AI_box_plugin\\static-resources\\dw_mx9\\";
+    // manifestDir = "E:\\TVT\\code\\SpectrumPlugin\\dwspectrum-metadata_sdk-6.0.6.41837-universal\\metadata_sdk\\samples\\AI_box_plugin\\static-resources\\dw_mx9\\";
+    manifestDir = "/Data/code/DWSpectrum/DWSpectrum_Official_SDK/1/metadata_sdk/samples/AI_box_plugin/static-resources/dw_mx9/";
     m_manifestPaths.push_back(manifestDir + "manifest_dw_mx9.json");
     m_manifestPaths.push_back(manifestDir + "manifest_evision.json");
     if (EngineManifestHelper::loadManifests(m_manifestPaths))
@@ -174,7 +174,7 @@ void Engine::loadCompatibleManifests()
     }
     else
     {
-        NX_OUTPUT << "Failed to open manifest files from: " << manifestDir;
+        NX_PRINT << "Failed to open manifest files from: " << manifestDir;
     }
 }
 
@@ -182,7 +182,7 @@ void Engine::initialize(nx::sdk::analytics::Plugin* plugin)
 {
     // m_plugin = plugin;
     // obtainPluginHomeDir();
-    // loadCompatibleManifests();
+    loadCompatibleManifests();
 }
 
 } // namespace AIbox

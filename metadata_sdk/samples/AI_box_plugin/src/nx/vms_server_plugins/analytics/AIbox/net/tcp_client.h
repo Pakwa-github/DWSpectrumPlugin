@@ -1,15 +1,17 @@
 #ifndef TCP_CLIENT_H
 #define TCP_CLIENT_H
 
-#include <asio.hpp>
-#include <asio/ts/buffer.hpp>
-#include <asio/ts/internet.hpp>
-#include <asio/executor_work_guard.hpp>
 #include <mutex>
 #include <string>
 #include <functional>
 #include <memory>
 #include <sstream>
+
+#include <asio.hpp>
+#include <asio/ts/buffer.hpp>
+#include <asio/ts/internet.hpp>
+#include <asio/executor_work_guard.hpp>
+
 
 using DataReceivedCallback = std::function<void(const std::string&)>;
 

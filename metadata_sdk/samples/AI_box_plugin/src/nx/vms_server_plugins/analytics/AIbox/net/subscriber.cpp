@@ -1,8 +1,9 @@
-#define NX_DEBUG_ENABLE_OUTPUT true
-#include <nx/kit/debug.h>
 
 #include "subscriber.h"
+
 #include <iostream>
+
+#include <nx/kit/debug.h>
 
 Subscriber::PEAResultCallback Subscriber::s_PEAResultCallback = nullptr;
 

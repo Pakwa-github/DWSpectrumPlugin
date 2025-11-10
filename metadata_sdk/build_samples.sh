@@ -64,7 +64,8 @@ esac
     rm -rf "$BUILD_DIR/"
 )
 
-for SOURCE_DIR in "$BASE_DIR/samples"/*
+# for SOURCE_DIR in "$BASE_DIR/samples"/*
+for SOURCE_DIR in "$BASE_DIR/samples/AI_box_plugin"
 do
     SAMPLE=$(basename "$SOURCE_DIR")
     (set -x #< Log each command.

@@ -1,12 +1,11 @@
 
-#define NX_DEBUG_ENABLE_OUTPUT true
-#include <nx/kit/debug.h>
-
 #include "engine_manifest.h"
+
 #include <fstream>
 #include <cctype>
 #include <algorithm>
 
+#include <nx/kit/debug.h>
 
 namespace nx::vms_server_plugins::analytics::stub::AIbox::ManifestStorage {
     std::unordered_set<std::string> supportedVendors;
@@ -41,7 +40,7 @@ std::string EngineManifestHelper::toLowerSpaceless(const std::string& str)
 void EngineManifestHelper::parseEvents(const nlohmann::json& eventJsonArray, std::vector<EventType>& outEvents) {
     if (!eventJsonArray.is_array())
     {
-        NX_OUTPUT << "Event JSON is not an array";
+        NX_PRINT << "Event JSON is not an array";
         return;
     }
 
@@ -72,7 +71,7 @@ bool EngineManifestHelper::loadManifest(const std::string& jsonFilePath)
     std::ifstream jsonFile(jsonFilePath);
     if (!jsonFile.is_open())
     {
-        NX_OUTPUT << "Failed to open manifest file: " << jsonFilePath;
+        NX_PRINT << "Failed to open manifest file: " << jsonFilePath;
         return false;
     }
     NX_PRINT << "Successfully opened manifest file: " << jsonFilePath;
@@ -83,7 +82,7 @@ bool EngineManifestHelper::loadManifest(const std::string& jsonFilePath)
     } 
     catch (const nlohmann::json::parse_error& e)
     {
-        NX_OUTPUT << "JSON parse error in " << jsonFilePath << ": " << e.what();
+        NX_PRINT << "JSON parse error in " << jsonFilePath << ": " << e.what();
         jsonFile.close();
         return false;
     }

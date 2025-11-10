@@ -1,21 +1,21 @@
-﻿// Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
-
-#define NX_DEBUG_ENABLE_OUTPUT true
-#include <nx/kit/debug.h>
+// Copyright 2018-present Network Optix, Inc. Licensed under MPL 2.0: www.mozilla.org/MPL/2.0/
 
 #include "device_agent.h"
 
 #include <chrono>
-
+#include <ctime>
+#include <cstdio>
 #include <nx/sdk/analytics/helpers/object_metadata.h>
 #include <nx/sdk/analytics/helpers/object_metadata_packet.h>
+#include <nx/kit/debug.h>
 
 #include "device_agent_manifest.h"
 #include "object_attributes.h"
-#include "../utils.h"
 #include "stub_analytics_plugin_AIbox_ini.h"
 
 #include "../net/subscriber.h"
+#include "../utils/utils.h"
+#include "../utils/log.h"
 
 namespace nx {
 namespace vms_server_plugins {
@@ -31,6 +31,8 @@ static constexpr int kTrackLength = 200;
 static constexpr float kMaxBoundingBoxWidth = 0.5F;
 static constexpr float kMaxBoundingBoxHeight = 0.5F;
 static constexpr float kFreeSpace = 0.1F;
+static constexpr int videoWidth = 10000;
+static constexpr int videoHeight = 10000;
 const std::string DeviceAgent::kTimeShiftSetting = "timestampShiftMs";
 const std::string DeviceAgent::kSendAttributesSetting = "sendAttributes";
 const std::string DeviceAgent::kObjectTypeGenerationSettingPrefix = "objectTypeIdToGenerate.";
@@ -44,6 +46,30 @@ static inline long long chooseEventTimestampUs(long long eventUs, int timestampS
             << "  result.currentTime:" << eventUs
             << "  m_timestampShiftMs:" << timestampShiftMs;
 
+    // Helper to format microsecond timestamp to human-readable string.
+    auto formatTimestampUs = [](long long us) -> std::string
+    {
+        if (us <= 0)
+            return std::string("(invalid)");
+
+        std::time_t sec = static_cast<std::time_t>(us / 1000000LL);
+        int micro = static_cast<int>(us % 1000000LL);
+        std::tm tm{};
+#if defined(_MSC_VER)
+        localtime_s(&tm, &sec);
+#else
+        localtime_r(&sec, &tm);
+#endif
+        char buf[64];
+        std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
+        char out[80];
+        std::snprintf(out, sizeof(out), "%s.%06d", buf, micro);
+        return std::string(out);
+    };
+
+    NX_PRINT << "PAKtry nowus_human:" << formatTimestampUs(now_us)
+            << "  eventUs_human:" << formatTimestampUs(eventUs);
+
     // If device time is wildly different from system time (e.g. > 10 min), treat
     // device timestamp as unreliable and use current system time for display.
 
@@ -51,15 +77,39 @@ static inline long long chooseEventTimestampUs(long long eventUs, int timestampS
     long long absDiff = (now_us > eventUs) ? (now_us - eventUs) : (eventUs - now_us);
     if (absDiff > kSkewThresholdUs || eventUs <= 0)
     {
+        NX_PRINT << "Using system time + shift -> "
+                 << formatTimestampUs(now_us + static_cast<long long>(timestampShiftMs) * 1000LL);
         return now_us + static_cast<long long>(timestampShiftMs) * 1000LL;
     }
+
+    NX_PRINT << "Using event time + shift -> " << formatTimestampUs(eventUs + static_cast<long long>(timestampShiftMs) * 1000LL);
     return eventUs + static_cast<long long>(timestampShiftMs) * 1000LL;
+}
+
+static Rect genBox(PEAResult result)
+{
+    nx::sdk::analytics::Rect boundingBox;
+    boundingBox.x = static_cast<float>(result.traject.x1) / videoWidth;
+    boundingBox.y = static_cast<float>(result.traject.y1) / videoHeight;
+    boundingBox.width = static_cast<float>(result.traject.x2 - result.traject.x1) / videoWidth;
+    boundingBox.height = static_cast<float>(result.traject.y2 - result.traject.y1) / videoHeight;
+    return boundingBox;
+}
+
+static Rect genStaticBox()
+{
+    Rect boundingBox;
+    boundingBox.width = 0.2F;
+    boundingBox.height = 0.2F;
+    boundingBox.x = (1.0F - boundingBox.width) / 2.0F;
+    boundingBox.y = (1.0F - boundingBox.height) / 2.0F;
+    return boundingBox;
 }
 
 static Rect generateBoundingBox(int frameIndex, int trackIndex, int trackCount)
 {
     
-    if (1)
+    if (0)
     {
         Rect boundingBox;
         boundingBox.width = 0.2F;
@@ -138,7 +188,7 @@ DeviceAgent::DeviceAgent(const nx::sdk::IDeviceInfo* deviceInfo):
 {
     NX_PRINT << "DeviceAgent created for device: " << deviceInfo->id();
     startSubscription();
-    NX_PRINT << "Subscription started in DeviceAgent constructor.";
+    Log::instance().init(1000, true);
 }
 
 DeviceAgent::~DeviceAgent()
@@ -150,6 +200,7 @@ DeviceAgent::~DeviceAgent()
         m_subscriptionStarted = false;
         NX_PRINT << "DeviceAgent destroyed, unsubscribed from IPC";
     }
+    Log::instance().shutdown();
 }
 
 std::string DeviceAgent::manifestString() const
@@ -211,33 +262,35 @@ void DeviceAgent::onPEAResultsReceived(const std::vector<PEAResult>& results)
 {
     for (const auto& result: results)
     {
-        int videoWidth = 10000;
-        int videoHeight = 10000;
+        
         auto metatdataPacket = makePtr<nx::sdk::analytics::ObjectMetadataPacket>();
 
         long long chosen_ts_us = chooseEventTimestampUs(static_cast<long long>(result.currentTime), m_timestampShiftMs);
         metatdataPacket->setTimestampUs(chosen_ts_us);
 
         auto objectMetadata = makePtr<nx::sdk::analytics::ObjectMetadata>();
+
         objectMetadata->setTypeId("nx.dw_tvt.PEA.perimeterAlarm");
+        // objectMetadata->setTypeId("nx.base.Person");
+
         std::string targetIdStr = std::to_string(result.traject.targetId);
         std::string uuidStr = "00000000-0000-0000-0000-" + std::string(12 - targetIdStr.size(), '0') + targetIdStr;
         nx::sdk::Uuid trackId = nx::sdk::UuidHelper::fromStdString(uuidStr);
         objectMetadata->setTrackId(trackId);
 
-        nx::sdk::analytics::Rect boundingBox;
-        boundingBox.x = static_cast<float>(result.traject.x1) / videoWidth;
-        boundingBox.y = static_cast<float>(result.traject.y1) / videoHeight;
-        boundingBox.width = static_cast<float>(result.traject.x2 - result.traject.x1) / videoWidth;
-        boundingBox.height = static_cast<float>(result.traject.y2 - result.traject.y1) / videoHeight;
-        objectMetadata->setBoundingBox(boundingBox);
+        // objectMetadata->setBoundingBox(genStaticBox());
+
+        objectMetadata->setBoundingBox(genBox(result));
+
+    // Log normalized bounding box values for easier debugging on the server.
+    // const nx::sdk::analytics::Rect& nb = objectMetadata->boundingBox();
+    // LOG_PRINT("box pushed from PEA result, targetId=" << result.traject.targetId
+    //     << ", raw_box=(" << result.traject.x1 << "," << result.traject.y1 << ","
+    //     << result.traject.x2 << "," << result.traject.y2 << ")"
+    //     << ", norm_box=(" << nb.x << "," << nb.y << "," << nb.width << "," << nb.height << ")");
 
         metatdataPacket->addItem(objectMetadata.get());
-
         pushMetadataPacket(metatdataPacket.releasePtr());
-        NX_PRINT << "box pushed from PEA result, targetId=" << result.traject.targetId << ", box=("
-                << result.traject.x1 << "," << result.traject.y1 << "," << result.traject.x2 << "," << result.traject.y2 << ")";
-
     }
 }
 

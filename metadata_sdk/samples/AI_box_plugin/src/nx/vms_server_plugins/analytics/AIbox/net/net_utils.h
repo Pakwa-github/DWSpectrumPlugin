@@ -1,8 +1,10 @@
 // net_utils.h
 #pragma once
-#include <tinyxml2/tinyxml2.h>
+
 #include <string>
 #include <vector>
+
+#include <tinyxml2/tinyxml2.h>
 
 struct TrajectoryResult
 {
