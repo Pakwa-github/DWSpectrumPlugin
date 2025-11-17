@@ -49,7 +49,7 @@ echo on
 @REM     call :build_sample %%S %1 %2 %3 %4 %5 %6 %7 %8 %9 || goto :exit
 @REM )
 
-call :build_sample %BASE_DIR%\samples\AI_box_plugin %1 %2 %3 %4 %5 %6 %7 %8 %9 || goto :exit
+call :build_sample %BASE_DIR%\samples\AIBox_plugin %1 %2 %3 %4 %5 %6 %7 %8 %9 || goto :exit
 
 :: Run unit tests if needed.
 if [%NO_TESTS%] == [1] echo NOTE: Unit tests were not run. & goto :skip_tests

@@ -65,7 +65,7 @@ esac
 )
 
 # for SOURCE_DIR in "$BASE_DIR/samples"/*
-for SOURCE_DIR in "$BASE_DIR/samples/AI_box_plugin"
+for SOURCE_DIR in "$BASE_DIR/samples/AIBox_plugin"
 do
     SAMPLE=$(basename "$SOURCE_DIR")
     (set -x #< Log each command.

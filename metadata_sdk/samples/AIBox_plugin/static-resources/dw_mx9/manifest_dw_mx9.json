@@ -1,0 +1,13 @@
+{
+    "supportedCameraVendors": [
+        "tvt",
+        "ipc"
+    ],
+    "supportedCameraModels": [
+        "TD-9553E3B"
+    ],
+    "partlySupportedCameraModels":
+    [
+        "TD-9553E3B"
+    ]
+}
