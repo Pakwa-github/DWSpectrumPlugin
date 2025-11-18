@@ -5,12 +5,16 @@
 #include <chrono>
 #include <ctime>
 #include <cstdio>
+#include <algorithm>
+#include <cmath>
+#include <cctype>
+#include <sstream>
+#include <iomanip>
 #include <nx/sdk/analytics/helpers/object_metadata.h>
 #include <nx/sdk/analytics/helpers/object_metadata_packet.h>
 #include <nx/kit/debug.h>
 
 #include "device_agent_manifest.h"
-#include "object_attributes.h"
 #include "ini.h"
 
 #include "../net/subscriber.h"
@@ -37,57 +41,6 @@ const std::string DeviceAgent::kTimeShiftSetting = "timestampShiftMs";
 const std::string DeviceAgent::kSendAttributesSetting = "sendAttributes";
 const std::string DeviceAgent::kObjectTypeGenerationSettingPrefix = "objectTypeIdToGenerate.";
 
-// static inline long long chooseEventTimestampUs(long long eventUs, int timestampShiftMs)
-long long DeviceAgent::chooseEventTimestampUs(long long eventUs, int timestampShiftMs)
-{
-    long long now_us = std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
-
-    NX_PRINT << "PAKtry nowus:" << now_us
-            << "  result.currentTime:" << eventUs
-            << "  m_timestampShiftMs:" << timestampShiftMs
-            << "  m_lastVideoFrameTimestampUs:" << m_lastVideoFrameTimestampUs;
-
-    // Helper to format microsecond timestamp to human-readable string.
-    auto formatTimestampUs = [](long long us) -> std::string
-    {
-        if (us <= 0)
-            return std::string("(invalid)");
-
-        std::time_t sec = static_cast<std::time_t>(us / 1000000LL);
-        int micro = static_cast<int>(us % 1000000LL);
-        std::tm tm{};
-#if defined(_MSC_VER)
-        localtime_s(&tm, &sec);
-#else
-        localtime_r(&sec, &tm);
-#endif
-        char buf[64];
-        std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
-        char out[80];
-        std::snprintf(out, sizeof(out), "%s.%06d", buf, micro);
-        return std::string(out);
-    };
-
-    NX_PRINT << "PAKtry nowus_human:" << formatTimestampUs(now_us)
-            << "  eventUs_human:" << formatTimestampUs(eventUs)
-            << "  m_lastVideoFrameTimestampUs_human:" << formatTimestampUs(m_lastVideoFrameTimestampUs);
-
-    return m_lastVideoFrameTimestampUs + static_cast<long long>(timestampShiftMs) * 1000LL;
-
-    const long long kSkewThresholdUs = 10LL * 60 * 1000000; // 10 minutes
-    long long absDiff = (now_us > eventUs) ? (now_us - eventUs) : (eventUs - now_us);
-    if (absDiff > kSkewThresholdUs || eventUs <= 0)
-    {
-        NX_PRINT << "Using system time + shift -> "
-                 << formatTimestampUs(now_us + static_cast<long long>(timestampShiftMs) * 1000LL);
-        return now_us + static_cast<long long>(timestampShiftMs) * 1000LL;
-    }
-
-    NX_PRINT << "Using event time + shift -> " << formatTimestampUs(eventUs + static_cast<long long>(timestampShiftMs) * 1000LL);
-    return eventUs + static_cast<long long>(timestampShiftMs) * 1000LL;
-}
-
 static void parseHostPortFromUrl(const std::string& url, std::string& hostOut, int& portOut)
 {
     hostOut.clear();
@@ -112,13 +65,68 @@ static void parseHostPortFromUrl(const std::string& url, std::string& hostOut, i
     hostOut.erase(std::find_if(hostOut.rbegin(), hostOut.rend(), [](int ch){ return !std::isspace(ch); }).base(), hostOut.end());
 }
 
-static Rect genBox(PEAResult result)
+static std::string formatTimestampUs(long long us)
+{
+    if (us <= 0)
+        return std::string("(invalid)");
+    std::time_t sec = static_cast<std::time_t>(us / 1000000LL);
+    int micro = static_cast<int>(us % 1000000LL);
+    std::tm tm{};
+#if defined(_MSC_VER)
+    localtime_s(&tm, &sec);
+#else
+    localtime_r(&sec, &tm);
+#endif
+    char buf[64];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
+    char out[80];
+    std::snprintf(out, sizeof(out), "%s.%06d", buf, micro);
+    return std::string(out);
+};
+
+static nx::sdk::Uuid makeTrackUuid(const std::string& mac, int targetId)
+{
+    std::string macNoColons;
+    macNoColons.reserve(mac.size());
+    for (char ch: mac)
+    {
+        if (ch == ':') 
+        {
+            continue;
+        }
+        if (std::isxdigit(static_cast<unsigned char>(ch)))
+        {
+            macNoColons.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(ch))));
+        }
+    }
+    std::string macHex = macNoColons.substr(0, 12);
+    if (macHex.size() < 12)
+    {
+        macHex += std::string(12 - macHex.size(), '0');
+    }
+        
+    std::ostringstream ss;
+    ss << std::hex << std::nouppercase << std::setw(8) << std::setfill('0') << targetId;
+    std::string targetHex = ss.str();
+
+    std::string fullHex = std::string(8, '0') + macHex + std::string(4, '0') + targetHex;
+    std::stringstream uuidSs;
+    uuidSs << fullHex.substr(0, 8) << "-"
+       << fullHex.substr(8, 4) << "-"
+       << fullHex.substr(12, 4) << "-"
+       << fullHex.substr(16, 4) << "-"
+       << fullHex.substr(20, 12);
+    std::string uuidStr = uuidSs.str();
+    return nx::sdk::UuidHelper::fromStdString(uuidStr);
+}
+
+static Rect genBox(const TrajectoryResult& traject)
 {
     nx::sdk::analytics::Rect boundingBox;
-    boundingBox.x = static_cast<float>(result.traject.x1) / videoWidth;
-    boundingBox.y = static_cast<float>(result.traject.y1) / videoHeight;
-    boundingBox.width = static_cast<float>(result.traject.x2 - result.traject.x1) / videoWidth;
-    boundingBox.height = static_cast<float>(result.traject.y2 - result.traject.y1) / videoHeight;
+    boundingBox.x = static_cast<float>(traject.x1) / videoWidth;
+    boundingBox.y = static_cast<float>(traject.y1) / videoHeight;
+    boundingBox.width = static_cast<float>(traject.x2 - traject.x1) / videoWidth;
+    boundingBox.height = static_cast<float>(traject.y2 - traject.y1) / videoHeight;
     return boundingBox;
 }
 
@@ -142,13 +150,7 @@ DeviceAgent::DeviceAgent(const nx::sdk::IDeviceInfo* deviceInfo):
 
 DeviceAgent::~DeviceAgent()
 {
-    std::lock_guard<std::mutex> lock(m_subscriptionMutex);
-    if (m_subscriptionStarted)
-    {
-        Subscriber::stopIpcSubscription();
-        m_subscriptionStarted = false;
-        NX_PRINT << "DeviceAgent destroyed, unsubscribed from IPC";
-    }
+    stopSubscription();
     Log::instance().shutdown();
 }
 
@@ -160,6 +162,7 @@ std::string DeviceAgent::manifestString() const
 bool DeviceAgent::pushCompressedVideoFrame(const ICompressedVideoPacket* videoFrame)
 {
     m_lastVideoFrameTimestampUs = videoFrame->timestampUs();
+    // NX_PRINT << "Received video frame, timestampUs=" << formatTimestampUs(videoFrame->timestampUs());
     return true;
 }
 
@@ -185,6 +188,7 @@ nx::sdk::Result<const nx::sdk::ISettingsResponse*> DeviceAgent::settingsReceived
         else if (key == kTimeShiftSetting)
         {
             m_timestampShiftMs = std::stoi(value);
+            m_havePeaAnchor = false;
         }
     }
     return nullptr;
@@ -195,40 +199,64 @@ void DeviceAgent::startSubscription()
     std::lock_guard<std::mutex> lock(m_subscriptionMutex);
     if (!m_subscriptionStarted)
     {
-        Subscriber::registerPEAResultCallback([this](const std::vector<PEAResult>& results)
+        m_subscriber.registerPEAResultCallback([this](const PEAResult& result)
         {
-            this->onPEAResultsReceived(results);
+            this->onPEAResultReceived(result);
         });
 
         std::string host;
         int port = 8080;
         parseHostPortFromUrl(m_deviceUrl, host, port);
-        Subscriber::startIpcSubscription(host, port, "/SetSubscribe", m_basicAuth);
+        NX_PRINT << "IPC Subscription starting...";
+        m_subscriber.startIpcSubscription(host, port, "/SetSubscribe", m_basicAuth);
         m_subscriptionStarted = true;
-        NX_PRINT << "IPC Subscription started.";
     }
 }
 
-void DeviceAgent::onPEAResultsReceived(const std::vector<PEAResult>& results)
+void DeviceAgent::stopSubscription()
+{
+    std::lock_guard<std::mutex> lock(m_subscriptionMutex);
+    if (m_subscriptionStarted)
+    {
+        m_subscriber.stopIpcSubscription();
+        m_subscriptionStarted = false;
+        NX_PRINT << "IPC Subscription stopped.";
+    }
+}
+
+void DeviceAgent::onPEAResultReceived(const PEAResult& result)
 {
     auto metatdataPacket = makePtr<nx::sdk::analytics::ObjectMetadataPacket>();
-
-    long long chosen_ts_us = 0;
     
-    for (const auto& result: results)
+    // currentTime
+    int64_t peaTs = static_cast<int64_t>(result.currentTime);
+    int64_t mappedVideoTs = PEATimestampUs(peaTs, m_timestampShiftMs);
+    // NX_PRINT << " peaTs=" << formatTimestampUs(peaTs) << " mappedVideoTs=" << formatTimestampUs(mappedVideoTs);
+
+    metatdataPacket->setTimestampUs(mappedVideoTs);
+
+    // Mac
+    std::string macTail = result.deviceMac;
+
+    // trajects
+    for (const auto& traject: result.trajects)
     {
         std::string objectTypeId;
-        if (result.traject.targetType == kStringPerson)
+        if (traject.targetType == kStringPerson)
         {
-            objectTypeId = kStringHuman;  // "TVT.base.Human" "nx.base.Person"
+            objectTypeId = kStringHuman;
         }
-        else if (result.traject.targetType == kStringCar)
+        else if (traject.targetType == kStringCar)
         {
-            objectTypeId = kStringMotor;  // "TVT.base.Motorcycle/Bicycle" "nx.base.Bike"
+            objectTypeId = kStringMotorVehicle;
         }
-        else if (result.traject.targetType == kStringMotor)
+        else if (traject.targetType == kStringMotor)
         {
-            objectTypeId = kStringUnknown;  // "TVT.base.Unknown" "nx.base.Unknown"
+            objectTypeId = kStringMotorcycleBicycle;
+        }
+        else
+        {
+            objectTypeId = kStringUnknown;
         }
         {
             const std::lock_guard<std::mutex> lock(m_mutex);
@@ -237,25 +265,54 @@ void DeviceAgent::onPEAResultsReceived(const std::vector<PEAResult>& results)
                 continue;
             }
         }
-        auto objectMetadata = makePtr<nx::sdk::analytics::ObjectMetadata>();
-        objectMetadata->setTypeId(objectTypeId);
         
-        std::string targetIdStr = std::to_string(result.traject.targetId);
-        std::string macTail = result.deviceMac;
-        std::string uuidStr = "00000000-0000-0000-0000-" + std::string(12 - targetIdStr.size(), '0') + targetIdStr;
-        nx::sdk::Uuid trackId = nx::sdk::UuidHelper::fromStdString(uuidStr);
+        auto objectMetadata = makePtr<nx::sdk::analytics::ObjectMetadata>();
+
+        // targetType
+        objectMetadata->setTypeId(objectTypeId);
+
+        nx::sdk::Uuid trackId = makeTrackUuid(result.deviceMac, traject.targetId);
         objectMetadata->setTrackId(trackId);
 
-        objectMetadata->setBoundingBox(genBox(result));
+        // rect
+        objectMetadata->setBoundingBox(genBox(traject));
 
         metatdataPacket->addItem(objectMetadata.get());
-         
-        chosen_ts_us = chooseEventTimestampUs(static_cast<long long>(result.currentTime), m_timestampShiftMs);
-        NX_PRINT << "Chosen event timestamp us: " << chosen_ts_us;
     }
 
-    metatdataPacket->setTimestampUs(chosen_ts_us);
     pushMetadataPacket(metatdataPacket.releasePtr());
+}
+
+int64_t DeviceAgent::PEATimestampUs(int64_t peaTs, int timestampShiftMs)
+{
+    std::lock_guard<std::mutex> lock(m_timeSyncMutex);
+    int64_t mappedVideoTs = 0;
+    if (peaTs > 0)
+    {
+        if (!m_havePeaAnchor)
+        {
+            m_anchorPeaTs = peaTs;
+            m_anchorVideoTs = m_lastVideoFrameTimestampUs;
+            m_havePeaAnchor = true;
+            NX_PRINT << "PEA anchor set: pea=" << formatTimestampUs(m_anchorPeaTs) << " video=" << formatTimestampUs(m_anchorVideoTs);
+        }
+        else
+        {
+            if (std::llabs(peaTs - m_anchorPeaTs) > DeviceAgent::kAnchorMaxDriftUs)
+            {
+                m_anchorPeaTs = peaTs;
+                m_anchorVideoTs = m_lastVideoFrameTimestampUs;
+                NX_PRINT << "PEA anchor reset due to drift: pea=" << formatTimestampUs(m_anchorPeaTs) << " video=" << formatTimestampUs(m_anchorVideoTs);
+            }
+        }
+        mappedVideoTs = m_anchorVideoTs + (peaTs - m_anchorPeaTs);
+    }
+    else
+    {
+        mappedVideoTs = m_lastVideoFrameTimestampUs;
+    }
+    mappedVideoTs += static_cast<int64_t>(m_timestampShiftMs) * 1000LL;
+    return mappedVideoTs;
 }
 
 } // namespace AIBox

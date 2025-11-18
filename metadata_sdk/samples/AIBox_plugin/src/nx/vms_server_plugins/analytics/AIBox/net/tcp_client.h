@@ -17,19 +17,9 @@ using DataReceivedCallback = std::function<void(const std::string&)>;
 
 class TcpClient
 {
-private:
-    static std::mutex s_instanceMutex;
-
 public:
     TcpClient(const TcpClient&) = delete;
     TcpClient& operator=(const TcpClient&) = delete;
-    
-    static TcpClient& getInstance()
-    {
-        std::lock_guard<std::mutex> lock(s_instanceMutex);
-        static TcpClient instance;
-        return instance;
-    }
 
     void connect(const std::string& host, unsigned short port, const std::string& subscribePath, 
                  const std::string& basicAuth, DataReceivedCallback callback);
@@ -42,10 +32,11 @@ public:
     
     void setRetryIntervalSec(int seconds);
 
-private:
+public:
     TcpClient();
     ~TcpClient();
 
+private:
     void onConnect(const asio::error_code& ec, const asio::ip::tcp::resolver::results_type& endpoints);
     
     void sendSubscribeRequest(const asio::ip::tcp::resolver::results_type& endpoints);

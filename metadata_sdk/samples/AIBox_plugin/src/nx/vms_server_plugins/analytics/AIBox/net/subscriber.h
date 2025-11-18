@@ -8,25 +8,24 @@
 
 class Subscriber {
 public:
-    static void startIpcSubscription(const std::string& host = "10.1.60.137",
-                                     unsigned short port = 8080,
-                                     const std::string& subscribePath = "/SetSubscribe",
-                                     const std::string& basicAuth = "aTNhZG1pbjpBZG1pbiEyMw==");
+    Subscriber();
+    ~Subscriber();
 
-    static void stopIpcSubscription();
+    void startIpcSubscription(const std::string& host = "10.1.60.137",
+                              unsigned short port = 8080,
+                              const std::string& subscribePath = "/SetSubscribe",
+                              const std::string& basicAuth = "aTNhZG1pbjpBZG1pbiEyMw==");
 
-    static bool isSubscribed()
-    {
-        return TcpClient::getInstance().isConnected();
-    }
+    void stopIpcSubscription();
 
-public:
-    using PEAResultCallback = std::function<void(const std::vector<PEAResult>&)>;
+    bool isSubscribed() const { return m_client.isConnected(); }
 
-    static void registerPEAResultCallback(PEAResultCallback callback);
+    using PEAResultCallback = std::function<void(const PEAResult&)>;
+    void registerPEAResultCallback(PEAResultCallback callback);
 
 private:
-    static PEAResultCallback s_PEAResultCallback;
+    PEAResultCallback m_PEAResultCallback = nullptr;
+    TcpClient m_client;
 };
 
 #endif // SUBSCRIBER_H

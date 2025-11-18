@@ -13,6 +13,7 @@
 
 #include "engine.h"
 #include "../net/net_utils.h"
+#include "../net/subscriber.h"
 
 namespace nx {
 namespace vms_server_plugins {
@@ -48,13 +49,13 @@ private:
     nx::sdk::Ptr<nx::sdk::analytics::IMetadataPacket> generateObjectMetadataPacket(
         int64_t frameTimestampUs);
 
-    void onPEAResultsReceived(const std::vector<PEAResult>& results);
+    void onPEAResultReceived(const PEAResult& result);
 
     void startSubscription();
+    void stopSubscription();
 
 private:
     mutable std::mutex m_mutex;
-
     int m_frameIndex = 0;
     int m_timestampShiftMs = 0;
     bool m_sendAttributes = true;
@@ -62,8 +63,9 @@ private:
     std::set<std::string> m_objectTypeIdsToGenerate;
 
 private:
-    bool m_subscriptionStarted = false; // Tracks whether the subscription is active for this instance
+    bool m_subscriptionStarted = false;
     std::mutex m_subscriptionMutex;
+    Subscriber m_subscriber;
 
 private:
     std::string m_login;
@@ -74,8 +76,13 @@ private:
     int64_t m_y1;
     int64_t delta;
 
-public:
-    long long chooseEventTimestampUs(long long eventUs, int timestampShiftMs);
+private:
+    std::mutex m_timeSyncMutex;
+    bool m_havePeaAnchor = false;
+    int64_t m_anchorPeaTs = 0;
+    int64_t m_anchorVideoTs = 0;
+    static constexpr int64_t kAnchorMaxDriftUs = 10LL * 1000000; // 10 seconds
+    int64_t PEATimestampUs(int64_t peaTs, int timestampShiftMs);
 };
 
 } // namespace AIBox

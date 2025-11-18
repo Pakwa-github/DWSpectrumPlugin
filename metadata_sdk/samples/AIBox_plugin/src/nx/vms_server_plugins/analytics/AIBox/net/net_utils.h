@@ -16,7 +16,6 @@ struct TrajectoryResult
     int y2;
 };
 
-// one trajectory result
 struct PEAResult
 {
     std::string smartType;
@@ -24,10 +23,10 @@ struct PEAResult
     int64_t currentTime;
     std::string deviceMac;
     std::string deviceName;
-    TrajectoryResult traject;
+    std::vector<TrajectoryResult> trajects;
 };
 
 
-std::vector<PEAResult> parsePEATrajectoryData(const std::string& xmlData);
+PEAResult parsePEATrajectoryData(const std::string& xmlData);
 
 std::string base64Encode(const std::string& input);

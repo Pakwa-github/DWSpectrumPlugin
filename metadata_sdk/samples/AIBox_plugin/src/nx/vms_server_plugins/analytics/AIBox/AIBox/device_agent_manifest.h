@@ -21,9 +21,6 @@ static const std::string kDeviceAgentManifest = /*suppress newline*/ 1 + (const 
         },
         {
             "objectTypeId": "TVT.base.Motorcycle/Bicycle"
-        },
-        {
-            "objectTypeId": "TVT.base.Unknown"
         }
     ]
 }

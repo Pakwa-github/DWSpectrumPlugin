@@ -7,8 +7,6 @@
 
 #include <nx/kit/debug.h>
 
-std::mutex TcpClient::s_instanceMutex;
-
 const std::string TcpClient::kBasicAuthPrefix =     "Basic ";
 const std::string TcpClient::kXmlVersion =          "1.7";
 const int TcpClient::kReconnectDelayMillisec =      50;
@@ -53,7 +51,7 @@ void TcpClient::connect(const std::string& host, unsigned short port, const std:
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_connected)
     {
-        NX_PRINT << "TcpClient already connected!";
+        NX_PRINT << "TcpClient already connected. No action taken.";
         return;
     }
 
@@ -342,7 +340,6 @@ void TcpClient::handleBody(const std::string& body, bool isSubscriptionResponse)
 {
     if (!isSubscriptionResponse)
     {
-        // NX_PRINT << "Received body (" << body.size() << " bytes)." << "\n";
         if (m_dataReceivedCallback)
         {
             m_dataReceivedCallback(body);
