@@ -4,8 +4,14 @@
 
 #include <cctype>
 #include <algorithm>
-#include <dirent.h>
-#include <cstring>
+#include <string>
+#if defined(__GNUC__) && __GNUC__ < 9
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#else
+#include <filesystem>
+namespace fs = std::filesystem;
+#endif
 
 #include <nx/kit/json.h>
 #include <nx/kit/debug.h>
@@ -30,18 +36,15 @@ static const std::set<std::string> kObjectTypeIdsGeneratedByDefault = {
 Engine::Engine(): 
     nx::sdk::analytics::Engine(ini().enableOutput)
 {
-    NX_PRINT << "PAK Engine created";
 }
 
 Engine::~Engine()
 {
     EngineManifestHelper::clearManifest();
-    NX_PRINT << "PAK Engine destroyed";
 }
 
 void Engine::doObtainDeviceAgent(Result<IDeviceAgent*>* outResult, const IDeviceInfo* deviceInfo)
 {
-    NX_PRINT << "PAK doObtainDeviceAgent called";
     *outResult = new DeviceAgent(deviceInfo);
 }
 
@@ -151,44 +154,49 @@ void Engine::loadCompatibleManifests()
         return;
     }
     baseDir = baseDir.substr(start, end - start + 1);
-    DIR* dir = opendir(baseDir.c_str());
-    if (!dir)
+    try
     {
-        NX_PRINT << "Failed to open plugin home dir: " << baseDir << ", error: " << strerror(errno);
-        return;
-    }
-    size_t added = 0;
-    dirent* entry = nullptr;
-    while ((entry = readdir(dir)) != nullptr)
-    {
-        if (entry->d_type != DT_REG)
+        if (!fs::exists(baseDir) || !fs::is_directory(baseDir))
         {
-            continue;
+            NX_PRINT << "Plugin home dir does not exist or is not a directory: " << baseDir;
+            return;
         }
-        const std::string fileName = entry->d_name;
-        const char* ext = strrchr(fileName.c_str(), '.');
-        if (ext == nullptr || strcmp(ext, ".json") != 0)
+        size_t added = 0;
+        for (const auto& entry : fs::directory_iterator(baseDir))
         {
-            continue;
+#if defined(__GNUC__) && __GNUC__ < 9
+            if (entry.status().type() != fs::file_type::regular)
+#else
+            if (!entry.is_regular_file())
+#endif
+            {
+                continue;
+            }
+            const std::string filePath = entry.path().string();
+            if (entry.path().extension() != ".json")
+            {
+                continue;
+            }
+            m_manifestPaths.push_back(filePath);
+            ++added;
         }
-        const std::string fullPath = baseDir + "/" + fileName;
-        m_manifestPaths.push_back(fullPath);
-        ++added;
+        if (added == 0)
+        {
+            NX_PRINT << "No manifest files found in: " << baseDir;
+            return;
+        }
+        if (EngineManifestHelper::loadManifests(m_manifestPaths))
+        {
+            NX_PRINT << "Loaded " << added << " manifest files from: " << baseDir;
+        }
+        else
+        {
+            NX_PRINT << "Failed to load manifest files from: " << baseDir;
+        }
     }
-    closedir(dir);
-    if (added == 0)
+    catch(const std::exception& e)
     {
-        NX_PRINT << "No manifest files found in: " << baseDir;
-        return;
-    }
-
-    if (EngineManifestHelper::loadManifests(m_manifestPaths))
-    {
-        NX_PRINT << "Loaded " << added << " manifest files from: " << baseDir;
-    }
-    else
-    {
-        NX_PRINT << "Failed to load manifest files from: " << baseDir;
+        std::cerr << "Failed to traverse plugin home dir: " << e.what() << '\n';
     }
 }
 

@@ -68,7 +68,9 @@ static void parseHostPortFromUrl(const std::string& url, std::string& hostOut, i
 static std::string formatTimestampUs(long long us)
 {
     if (us <= 0)
+    {
         return std::string("(invalid)");
+    }
     std::time_t sec = static_cast<std::time_t>(us / 1000000LL);
     int micro = static_cast<int>(us % 1000000LL);
     std::tm tm{};
@@ -138,11 +140,7 @@ DeviceAgent::DeviceAgent(const nx::sdk::IDeviceInfo* deviceInfo):
     m_basicAuth = base64Encode(m_login + ":" + m_password);
     m_deviceUrl = nx::kit::utils::toString(deviceInfo->url());
 
-    NX_PRINT << "DeviceAgent created for device: " << deviceInfo->id();
-    NX_PRINT << " login: " << m_login;
-    NX_PRINT << " password: " << m_password;
-    NX_PRINT << " basicAuth: " << m_basicAuth;
-    NX_PRINT << " url: " << deviceInfo->url();
+    NX_PRINT << "DeviceAgent created for device: " << deviceInfo->vendor() << " " << deviceInfo->model();
 
     startSubscription();
     Log::instance().init(1000, true);
@@ -162,7 +160,6 @@ std::string DeviceAgent::manifestString() const
 bool DeviceAgent::pushCompressedVideoFrame(const ICompressedVideoPacket* videoFrame)
 {
     m_lastVideoFrameTimestampUs = videoFrame->timestampUs();
-    // NX_PRINT << "Received video frame, timestampUs=" << formatTimestampUs(videoFrame->timestampUs());
     return true;
 }
 
@@ -188,7 +185,6 @@ nx::sdk::Result<const nx::sdk::ISettingsResponse*> DeviceAgent::settingsReceived
         else if (key == kTimeShiftSetting)
         {
             m_timestampShiftMs = std::stoi(value);
-            m_havePeaAnchor = false;
         }
     }
     return nullptr;
@@ -226,14 +222,15 @@ void DeviceAgent::stopSubscription()
 
 void DeviceAgent::onPEAResultReceived(const PEAResult& result)
 {
+    if (m_lastVideoFrameTimestampUs <= 0)
+    {
+        return;
+    }
+    
     auto metatdataPacket = makePtr<nx::sdk::analytics::ObjectMetadataPacket>();
     
     // currentTime
-    int64_t peaTs = static_cast<int64_t>(result.currentTime);
-    int64_t mappedVideoTs = PEATimestampUs(peaTs, m_timestampShiftMs);
-    // NX_PRINT << " peaTs=" << formatTimestampUs(peaTs) << " mappedVideoTs=" << formatTimestampUs(mappedVideoTs);
-
-    metatdataPacket->setTimestampUs(mappedVideoTs);
+    metatdataPacket->setTimestampUs(m_lastVideoFrameTimestampUs + static_cast<int64_t>(m_timestampShiftMs) * 1000LL);
 
     // Mac
     std::string macTail = result.deviceMac;
@@ -281,38 +278,6 @@ void DeviceAgent::onPEAResultReceived(const PEAResult& result)
     }
 
     pushMetadataPacket(metatdataPacket.releasePtr());
-}
-
-int64_t DeviceAgent::PEATimestampUs(int64_t peaTs, int timestampShiftMs)
-{
-    std::lock_guard<std::mutex> lock(m_timeSyncMutex);
-    int64_t mappedVideoTs = 0;
-    if (peaTs > 0)
-    {
-        if (!m_havePeaAnchor)
-        {
-            m_anchorPeaTs = peaTs;
-            m_anchorVideoTs = m_lastVideoFrameTimestampUs;
-            m_havePeaAnchor = true;
-            NX_PRINT << "PEA anchor set: pea=" << formatTimestampUs(m_anchorPeaTs) << " video=" << formatTimestampUs(m_anchorVideoTs);
-        }
-        else
-        {
-            if (std::llabs(peaTs - m_anchorPeaTs) > DeviceAgent::kAnchorMaxDriftUs)
-            {
-                m_anchorPeaTs = peaTs;
-                m_anchorVideoTs = m_lastVideoFrameTimestampUs;
-                NX_PRINT << "PEA anchor reset due to drift: pea=" << formatTimestampUs(m_anchorPeaTs) << " video=" << formatTimestampUs(m_anchorVideoTs);
-            }
-        }
-        mappedVideoTs = m_anchorVideoTs + (peaTs - m_anchorPeaTs);
-    }
-    else
-    {
-        mappedVideoTs = m_lastVideoFrameTimestampUs;
-    }
-    mappedVideoTs += static_cast<int64_t>(m_timestampShiftMs) * 1000LL;
-    return mappedVideoTs;
 }
 
 } // namespace AIBox

@@ -3,15 +3,44 @@
 
 #include <nx/kit/debug.h>
 
+std::string preprocessXmlData(const std::string& xmlData)
+{
+    std::string xml = xmlData;
+    if (xml.size() >= 3 &&
+        static_cast<unsigned char>(xml[0]) == 0xEF &&
+        static_cast<unsigned char>(xml[1]) == 0xBB &&
+        static_cast<unsigned char>(xml[2]) == 0xBF)
+    {
+        xml.erase(0, 3);
+    }
+
+    size_t firstNonSpace = xml.find_first_not_of(" \t\r\n");
+    if (firstNonSpace != std::string::npos && firstNonSpace > 0)
+    {
+        xml.erase(0, firstNonSpace);
+    }
+
+    if (xml.empty() || xml[0] != '<')
+    {
+        size_t firstLT = xml.find('<');
+        if (firstLT != std::string::npos)
+        {
+            xml.erase(0, firstLT);
+        }
+    }
+    return xml;
+}
+
 PEAResult parsePEATrajectoryData(const std::string& xmlData)
 {
     PEAResult result{};
-
+    std::string xml = preprocessXmlData(xmlData);
     tinyxml2::XMLDocument doc;
-    tinyxml2::XMLError e = doc.Parse(xmlData.c_str());
+    tinyxml2::XMLError e = doc.Parse(xml.c_str());
     if (e != tinyxml2::XML_SUCCESS)
     {
         NX_PRINT << "Failed to parse XML data: " << doc.ErrorStr();
+        NX_PRINT << xmlData.c_str();
         return result;
     }
     tinyxml2::XMLElement* root = doc.RootElement();
@@ -19,6 +48,13 @@ PEAResult parsePEATrajectoryData(const std::string& xmlData)
     {
         NX_PRINT << "Invalid XML format: No root element.";
         return result;
+    }
+
+    std::string sourceDataInfo;
+    tinyxml2::XMLElement* sourceDataInfoElem = root->FirstChildElement("sourceDataInfo");
+    if (sourceDataInfoElem)
+    {
+        return result;  // No sourceDataInfo
     }
     std::string smartType;
     tinyxml2::XMLElement* smartTypeElem = root->FirstChildElement("smartType");
@@ -28,7 +64,6 @@ PEAResult parsePEATrajectoryData(const std::string& xmlData)
     }
     if (smartType != "PEA")
     {
-        NX_PRINT << "Unsupported smartType: " << smartType;
         return result;
     }
     std::string subscribeOption;

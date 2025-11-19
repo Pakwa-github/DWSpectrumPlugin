@@ -20,7 +20,6 @@ using namespace nx::sdk::analytics;
 
 Result<IEngine*> Plugin::doObtainEngine()
 {
-    NX_PRINT << "PAK doObtainEngine called";
     auto engine = new Engine();
     engine->initialize(this);
     return engine;

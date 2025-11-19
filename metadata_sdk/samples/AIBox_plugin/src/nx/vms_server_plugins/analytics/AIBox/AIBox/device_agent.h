@@ -52,6 +52,7 @@ private:
     void onPEAResultReceived(const PEAResult& result);
 
     void startSubscription();
+
     void stopSubscription();
 
 private:
@@ -73,16 +74,6 @@ private:
     std::string m_basicAuth;
     std::string m_deviceUrl;
     int64_t m_lastVideoFrameTimestampUs = 0;
-    int64_t m_y1;
-    int64_t delta;
-
-private:
-    std::mutex m_timeSyncMutex;
-    bool m_havePeaAnchor = false;
-    int64_t m_anchorPeaTs = 0;
-    int64_t m_anchorVideoTs = 0;
-    static constexpr int64_t kAnchorMaxDriftUs = 10LL * 1000000; // 10 seconds
-    int64_t PEATimestampUs(int64_t peaTs, int timestampShiftMs);
 };
 
 } // namespace AIBox

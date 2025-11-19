@@ -57,7 +57,6 @@ void EngineManifestHelper::parseEvents(const nlohmann::json& eventJsonArray, std
         if (!peaEvent.id.empty())
         {
             outEvents.push_back(peaEvent);
-            NX_PRINT << "Loaded PEA event: " << peaEvent.id;
         }
     }
 }
@@ -116,7 +115,7 @@ bool EngineManifestHelper::loadManifest(const std::string& jsonFilePath)
         parseEvents(manifestJson["eventTypes"], ManifestStorage::supportedPeaEvents);
     }
 
-    NX_PRINT << "Successfully loaded manifest: " << jsonFilePath;
+    NX_PRINT << "Successfully loaded manifest file: " << jsonFilePath;
     return true;
 }
 

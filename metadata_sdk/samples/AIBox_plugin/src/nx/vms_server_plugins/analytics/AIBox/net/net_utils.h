@@ -26,6 +26,7 @@ struct PEAResult
     std::vector<TrajectoryResult> trajects;
 };
 
+std::string preprocessXmlData(const std::string& xmlData);
 
 PEAResult parsePEATrajectoryData(const std::string& xmlData);
 

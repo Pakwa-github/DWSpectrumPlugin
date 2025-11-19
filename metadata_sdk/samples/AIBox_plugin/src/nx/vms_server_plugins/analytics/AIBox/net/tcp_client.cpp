@@ -208,11 +208,6 @@ void TcpClient::handleHeader(size_t bytesTransferred)
     {
         header += line + "\n";
     }
-    {
-        std::ostringstream oss;
-        oss << "Received header (" << bytesTransferred << " bytes):\n" << m_firstLine << "\n" << header;
-        // NX_PRINT << oss.str();
-    }
 
     size_t contentLength = parseContentLength(header);
     size_t bodyAlready = m_responseBuffer.size();
@@ -221,9 +216,11 @@ void TcpClient::handleHeader(size_t bytesTransferred)
     {
         if (bodyAlready >= contentLength)
         {
-            std::ostringstream bodyoss;
-            bodyoss << &m_responseBuffer;
-            processBody(bodyoss.str());
+            std::istream responseStream(&m_responseBuffer);
+            std::string body;
+            body.resize(contentLength);
+            responseStream.read(&body[0], static_cast<std::streamsize>(contentLength));
+            processBody(body);
         }
         else
         {
@@ -232,13 +229,15 @@ void TcpClient::handleHeader(size_t bytesTransferred)
                 *m_socket,
                 m_responseBuffer,
                 asio::transfer_exactly(toRead),
-                [this](const asio::error_code& ec, size_t /*bytesTransferred*/)
+                [this, contentLength](const asio::error_code& ec, size_t /*bytesTransferred*/)
                 {
                     if (!ec)
                     {
-                        std::ostringstream bodyoss;
-                        bodyoss << &m_responseBuffer;
-                        this->processBody(bodyoss.str());
+                        std::istream responseStream(&m_responseBuffer);
+                        std::string body;
+                        body.resize(contentLength);
+                        responseStream.read(&body[0], static_cast<std::streamsize>(contentLength));
+                        processBody(body);
                     }
                     else
                     {
@@ -306,7 +305,6 @@ void TcpClient::processBody(const std::string& body)
             NX_PRINT << "Handling unsubscribe response...";
             if (m_firstLine.find("POST") != std::string::npos)
             {
-                NX_PRINT << "Ignore this header.";
                 readNextHeader();
                 break;
             }
@@ -342,7 +340,44 @@ void TcpClient::handleBody(const std::string& body, bool isSubscriptionResponse)
     {
         if (m_dataReceivedCallback)
         {
-            m_dataReceivedCallback(body);
+            const std::string startTag = "<config";
+            const std::string endTag = "</config>";
+            size_t pos = 0;
+            bool configFound = false;
+            while (true)
+            {
+                size_t s = body.find(startTag, pos);
+                if (s == std::string::npos) { break; }
+                size_t e = body.find(endTag, s);
+                if (e == std::string::npos) { break; }
+                e += endTag.length();
+                std::string chunk = body.substr(s, e - s);
+                m_dataReceivedCallback(chunk);
+                configFound = true;
+                pos = e;
+            }
+            if (!configFound)
+            {
+                const std::string marker = "<?xml";
+                size_t p = 0;
+                bool xmlFound = false;
+                while (true)
+                {
+                    size_t idx = body.find(marker, p);
+                    if (idx == std::string::npos) { break; }
+                    size_t next = body.find(marker, idx + marker.length());
+                    std::string chunk = (next != std::string::npos)
+                        ? body.substr(idx, next - idx)
+                        : body.substr(idx);
+                    m_dataReceivedCallback(chunk);
+                    xmlFound = true;
+                    p = next;
+                }
+                if (!xmlFound)
+                {
+                    m_dataReceivedCallback(body);
+                }
+            }
         }
     }
     else

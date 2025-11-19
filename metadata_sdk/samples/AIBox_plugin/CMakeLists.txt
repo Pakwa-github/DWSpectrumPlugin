@@ -74,6 +74,11 @@ target_link_libraries(AIBox_plugin PRIVATE nx_kit nx_sdk)
 
 target_compile_definitions(AIBox_plugin PRIVATE NX_PLUGIN_API=${API_EXPORT_MACRO})
 
+if(UNIX)
+    target_link_libraries(AIBox_plugin PRIVATE stdc++fs)
+    target_compile_options(AIBox_plugin PRIVATE -std=c++17)
+endif()
+
 # asio
 # --------------------------------------------------------------------------------------------------
 target_include_directories(AIBox_plugin PRIVATE ${AIBOX_PLUGIN_SRC_DIR}/third_party/asio/include)
