@@ -66,7 +66,14 @@ target_include_directories(nx_sdk PRIVATE ${AIBOX_PLUGIN_SRC_DIR}/lib)
 target_include_directories(nx_sdk PRIVATE ${AIBOX_PLUGIN_SRC_DIR}/lib/asio/include)
 target_link_libraries(nx_sdk PRIVATE nx_kit)
 
-target_compile_definitions(nx_sdk PRIVATE NX_PLUGIN_API=${API_EXPORT_MACRO}) #< for nxLibContext()
+target_compile_definitions(nx_sdk PRIVATE 
+    NX_PLUGIN_API=${API_EXPORT_MACRO}
+    _SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING
+) #< for nxLibContext()
+
+if (WIN32)
+    target_compile_definitions(nx_sdk PRIVATE _WIN32_WINNT=0x0601)
+endif()
 
 #--------------------------------------------------------------------------------------------------
 # Define AIBox_plugin lib, dynamic, depends on nx_kit and nx_sdk.

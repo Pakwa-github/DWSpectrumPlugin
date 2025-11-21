@@ -9,30 +9,31 @@ namespace vms_server_plugins {
 namespace analytics {
 namespace AIBox {
 
+static const std::string kStringHuman =             "nx.base.Person";
+static const std::string kStringMotorVehicle =      "nx.base.Car";
+static const std::string kStringMotorcycleBicycle = "nx.base.Bike";
+static const std::string kStringUnknown =           "nx.base.Unknown";
+static const std::string kStringPerson =            "person";
+static const std::string kStringCar =               "car";
+static const std::string kStringMotor =             "motor";
+
 static const std::string kDeviceAgentManifest = /*suppress newline*/ 1 + (const char*) R"json(
 {
     "supportedTypes":
     [
         {
-            "objectTypeId": "TVT.base.Human"
+            "objectTypeId": "nx.base.Person"
         },
         {
-            "objectTypeId": "TVT.base.Motor Vehicle"
+            "objectTypeId": "nx.base.Car"
         },
         {
-            "objectTypeId": "TVT.base.Motorcycle/Bicycle"
+            "objectTypeId": "nx.base.Bike"
         }
     ]
 }
 )json";
 
-static const std::string kStringHuman =             "TVT.base.Human";
-static const std::string kStringMotorVehicle =      "TVT.base.Motor Vehicle";
-static const std::string kStringMotorcycleBicycle = "TVT.base.Motorcycle/Bicycle";
-static const std::string kStringUnknown =           "TVT.base.Unknown";
-static const std::string kStringPerson =            "person";
-static const std::string kStringCar =               "car";
-static const std::string kStringMotor =             "motor";
 } // namespace AIBox
 } // namespace analytics
 } // namespace vms_server_plugins
