@@ -45,11 +45,9 @@ echo on
     rmdir /S /Q "%BUILD_DIR%" 2>NUL
 @echo off
 
-@REM for /d %%S in (%BASE_DIR%\samples\*) do (
-@REM     call :build_sample %%S %1 %2 %3 %4 %5 %6 %7 %8 %9 || goto :exit
-@REM )
-
-call :build_sample %BASE_DIR%\samples\AIBox_plugin %1 %2 %3 %4 %5 %6 %7 %8 %9 || goto :exit
+for /d %%S in (%BASE_DIR%\samples\*) do (
+    call :build_sample %%S %1 %2 %3 %4 %5 %6 %7 %8 %9 || goto :exit
+)
 
 :: Run unit tests if needed.
 if [%NO_TESTS%] == [1] echo NOTE: Unit tests were not run. & goto :skip_tests
